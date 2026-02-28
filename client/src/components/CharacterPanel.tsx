@@ -1,6 +1,6 @@
 import './CharacterPanel.css';
 import { Canvas } from '@react-three/fiber';
-import { Suspense, useRef, useState } from 'react';
+import { Suspense, useRef, useState, useEffect } from 'react';
 import { OrbitControls, useGLTF, useAnimations, Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 
@@ -20,26 +20,27 @@ function ChillMotion({ groupRef }: { groupRef: React.RefObject<any> }) {
   return null;
 }
 
-function AaronModel({ onClick }: { onClick: () => void }) {
+function AaronModel({ onClick, triggerFlinch }: { onClick: () => void; triggerFlinch: boolean }) {
   const group = useRef<any>();
   const { scene, animations } = useGLTF('/models/aaron.glb');
   const { actions, names } = useAnimations(animations, group);
-  const [flinch, setFlinch] = useState(false);
+  const animationPlayedRef = useRef(false);
 
   // Animation name logic
   const idleName = names.find(n => n.toLowerCase() === 'idle') || names[0];
   const flinchName = names.find(n => n.toLowerCase() === 'flinch') || names[1];
 
+  // Handle flinch trigger from parent
+  useEffect(() => {
+    if (triggerFlinch && flinchName && actions[flinchName]) {
+      actions[flinchName]?.reset().play();
+      animationPlayedRef.current = true;
+    }
+  }, [triggerFlinch, flinchName, actions]);
+
   // Animation switching
   useFrame(() => {
-    if (flinch && actions[flinchName]) {
-      actions[flinchName]?.reset().play();
-      setTimeout(() => {
-        actions[flinchName]?.fadeOut(0.2);
-        actions[idleName]?.reset().fadeIn(0.2).play();
-        setFlinch(false);
-      }, 250);
-    } else if (actions[idleName] && !flinch) {
+    if (actions[idleName] && !actions[flinchName]?.isRunning()) {
       actions[idleName]?.play();
     }
   });
@@ -70,22 +71,24 @@ function AaronModel({ onClick }: { onClick: () => void }) {
 }
 
 export default function CharacterPanel() {
-  const [flinch, setFlinch] = useState(false);
+  const [triggerFlinch, setTriggerFlinch] = useState(false);
+  
   const handleClick = () => {
-    setFlinch(true);
-    setTimeout(() => setFlinch(false), 250);
+    setTriggerFlinch(true);
+    setTimeout(() => setTriggerFlinch(false), 500);
   };
+
   return (
     <div className="character-panel">
       <Canvas camera={{ position: [0, 1.2, 2.5], fov: 40 }} shadows>
         <ambientLight intensity={0.7} />
         <directionalLight position={[2, 8, 5]} intensity={1.2} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
         <Suspense fallback={<Html center>Loading...</Html>}>
-          <AaronModel onClick={handleClick} />
+          <AaronModel onClick={handleClick} triggerFlinch={triggerFlinch} />
         </Suspense>
         <OrbitControls enablePan={false} enableZoom={false} minPolarAngle={0.8} maxPolarAngle={1.5} />
       </Canvas>
-      <button className="pill-btn">Click Me</button>
+      <button className="pill-btn" onClick={handleClick}>Click Me</button>
     </div>
   );
 }
