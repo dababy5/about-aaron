@@ -30,9 +30,16 @@ function AaronModel({ onClick, triggerFlinch }: { onClick: () => void; triggerFl
   const idleName = names.find(n => n.toLowerCase() === 'idle') || names[0];
   const flinchName = names.find(n => n.toLowerCase() === 'flinch') || names[1];
 
+  // Debug logging
+  useEffect(() => {
+    console.log('GLB loaded. Animations available:', names);
+    console.log('Idle:', idleName, 'Flinch:', flinchName);
+  }, [names, idleName, flinchName]);
+
   // Handle flinch trigger from parent
   useEffect(() => {
     if (triggerFlinch && flinchName && actions[flinchName]) {
+      console.log('Playing flinch animation:', flinchName);
       actions[flinchName]?.reset().play();
       animationPlayedRef.current = true;
     }
@@ -40,7 +47,7 @@ function AaronModel({ onClick, triggerFlinch }: { onClick: () => void; triggerFl
 
   // Animation switching
   useFrame(() => {
-    if (actions[idleName] && !actions[flinchName]?.isRunning()) {
+    if (idleName && actions[idleName] && !actions[flinchName]?.isRunning()) {
       actions[idleName]?.play();
     }
   });
@@ -80,10 +87,10 @@ export default function CharacterPanel() {
 
   return (
     <div className="character-panel">
-      <Canvas camera={{ position: [0, 1.2, 2.5], fov: 40 }} shadows>
+      <Canvas camera={{ position: [0, 1.2, 2.5], fov: 40 }} shadows onCreated={(state) => console.log('Canvas initialized')}>
         <ambientLight intensity={0.7} />
         <directionalLight position={[2, 8, 5]} intensity={1.2} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
-        <Suspense fallback={<Html center>Loading...</Html>}>
+        <Suspense fallback={<Html center><div style={{color: 'white'}}>Loading 3D Character...</div></Html>}>
           <AaronModel onClick={handleClick} triggerFlinch={triggerFlinch} />
         </Suspense>
         <OrbitControls enablePan={false} enableZoom={false} minPolarAngle={0.8} maxPolarAngle={1.5} />
