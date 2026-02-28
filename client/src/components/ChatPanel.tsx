@@ -8,7 +8,7 @@ interface Message {
 
 export default function ChatPanel() {
   const [messages, setMessages] = useState<Message[]>([
-    { sender: 'assistant', text: "Hey, I'm Aaron. Ask me anything." },
+    { sender: 'assistant', text: "Hey, I'm Aaron. An ML trained on Aaron. Ask me anything." },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
