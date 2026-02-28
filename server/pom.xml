@@ -37,6 +37,7 @@
                     <workingDirectory>../client</workingDirectory>
                 </configuration>
                 <executions>
+                    <!-- Install Node.js + npm locally -->
                     <execution>
                         <id>install-node-and-npm</id>
                         <goals>
@@ -47,23 +48,14 @@
                             <npmVersion>10.5.0</npmVersion>
                         </configuration>
                     </execution>
+                    <!-- Install frontend dependencies -->
                     <execution>
                         <id>npm-install</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>install</arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>npm-run-dev</id>
-                        <goals>
-                            <goal>npm</goal>
-                        </goals>
-                        <phase>pre-integration-test</phase>
-                        <configuration>
-                            <arguments>run dev</arguments>
+                            <arguments>install --legacy-peer-deps</arguments>
                         </configuration>
                     </execution>
                 </executions>
@@ -104,7 +96,7 @@
                                     <goal>npm</goal>
                                 </goals>
                                 <configuration>
-                                    <arguments>ci</arguments>
+                                    <arguments>ci --legacy-peer-deps</arguments>
                                 </configuration>
                             </execution>
                             <execution>

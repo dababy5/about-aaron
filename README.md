@@ -16,22 +16,47 @@ An interactive portfolio website built with React, Three.js, and Spring Boot. Fe
 
 ## Quick Start
 
-### Development
+### Development (Two-Terminal Approach - Recommended)
 
-From the **`server`** directory, run a single command to start both the backend and Vite dev server:
+This is the standard development workflow for frontend + backend projects.
+
+**Terminal 1 - Start Spring Boot backend:**
 
 ```bash
 cd server
 mvn spring-boot:run
 ```
 
-This command:
-1. Installs Node.js + npm locally (no global Node required)
-2. Installs frontend dependencies via `npm install` in `../client`
-3. Starts the Vite dev server on `http://localhost:5173` with `--host`
-4. Starts Spring Boot backend on `http://localhost:8080`
+This will:
+- Install Node.js + npm locally (first run only)
+- Install frontend dependencies
+- Start Spring Boot on port 8080
 
-Then open **`http://localhost:5173`** in your browser.
+**Terminal 2 - Start Vite dev server:**
+
+```bash
+cd client
+npm run dev
+```
+
+This will start the Vite dev server on port 5173.
+
+Then open **`http://localhost:5173`** in your browser. The frontend will automatically proxy `/api` requests to the backend on port 8080.
+
+---
+
+### Alternative: Single-Command Dev (Experimental)
+
+If you prefer a single command, use the provided shell script:
+
+```bash
+cd server
+bash start-dev.sh
+```
+
+This starts both Vite and Spring Boot in one terminal. Press `Ctrl+C` to stop both services together.
+
+---
 
 ### Production Build
 

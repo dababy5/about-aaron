@@ -11,11 +11,11 @@
     "copy-dist": "cp -r dist ../server/src/main/resources/static"
   },
   "dependencies": {
-    "@react-three/drei": "^9.86.7",
-    "@react-three/fiber": "^8.13.2",
+    "@react-three/drei": "^9.115.0",
+    "@react-three/fiber": "^8.17.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "three": "^0.160.0"
+    "three": "^0.167.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
