@@ -2,39 +2,43 @@ import './CharacterPanel.css';
 import { Canvas } from '@react-three/fiber';
 import { Suspense, useRef, useState, useEffect } from 'react';
 import { OrbitControls, useGLTF, useAnimations, Html, Environment, ContactShadows } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-function ChillMotion({ groupRef }: { groupRef: React.RefObject<any> }) {
-  // Subtle chill motion using smoothed random
-  useFrame((state) => {
-    if (!groupRef.current) return;
-    const t = state.clock.getElapsedTime();
-    // Perlin/simple noise replacement: sin/cos based
-    const sway = Math.sin(t * 0.7) * 0.03;
-    const bob = Math.sin(t * 0.9) * 0.04;
-    const nod = Math.sin(t * 0.5) * 0.02;
-    groupRef.current.position.y = bob;
-    groupRef.current.rotation.y = sway;
-    groupRef.current.rotation.x = nod;
-  });
-  return null;
-}
+const MODEL_PATH = '/models/Meshy_AI_Meshy_Merged_Animations.glb';
 
-function AaronModel({ onClick, triggerFlinch }: { onClick: () => void; triggerFlinch: boolean }) {
-  const group = useRef<any>();
-  const { scene, animations } = useGLTF('/models/aaron.glb');
+function AaronModel({ onClick, triggerClick }: { onClick: () => void; triggerClick: boolean }) {
+  const group = useRef<any>(null);
+  const { scene, animations } = useGLTF(MODEL_PATH);
   const { actions, names } = useAnimations(animations, group);
-  const animationPlayedRef = useRef(false);
+  const [hasWaved, setHasWaved] = useState(false);
+  const currentActionRef = useRef<any>(null);
 
-  // Animation name logic
-  const idleName = names.find(n => n.toLowerCase() === 'idle') || names[0];
-  const flinchName = names.find(n => n.toLowerCase() === 'flinch') || names[1];
-
-  // Debug logging & Material Enhancement
+  // Log available animations
   useEffect(() => {
-    console.log('GLB loaded. Animations available:', names);
-    console.log('Idle:', idleName, 'Flinch:', flinchName);
+    console.log('Available animations:', names);
+  }, [names]);
+
+  // Animation name helpers
+  const getAnimationName = (keyword: string) => {
+    return names.find(n => n.toLowerCase().includes(keyword.toLowerCase())) || null;
+  };
+
+  const idleName = getAnimationName('Dead');
+  const actionName = getAnimationName('flinch') || getAnimationName('salute') || getAnimationName('punch');
+
+  // Material Enhancement
+  useEffect(() => {
+    const box = new THREE.Box3().setFromObject(scene);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const targetHeight = 1.75;
+    const rawScale = targetHeight / Math.max(size.y, 0.001);
+    const scale = THREE.MathUtils.clamp(rawScale, 0.35, 1.25);
+
+    scene.position.x = -center.x * scale;
+    scene.position.y = -box.min.y * scale + (size.y * scale) * (0.3 / targetHeight);
+    scene.position.z = -center.z * scale;
+    scene.scale.setScalar(scale);
 
     // Enhance materials for better 3D appearance
     scene.traverse((obj: any) => {
@@ -45,53 +49,57 @@ function AaronModel({ onClick, triggerFlinch }: { onClick: () => void; triggerFl
         if (obj.material) {
           obj.material.roughness = 0.7;
           obj.material.metalness = 0.1;
-          obj.material.envMapIntensity = 1.2;
+          obj.material.envMapIntensity = 0.15;
         }
       }
     });
-  }, [scene, names, idleName, flinchName]);
+  }, [scene, names]);
 
-  // Handle flinch trigger from parent
+  // Start with Dead animation looping
   useEffect(() => {
-    if (triggerFlinch && flinchName && actions[flinchName]) {
-      console.log('Playing flinch animation:', flinchName);
-      actions[flinchName]?.reset().play();
-      animationPlayedRef.current = true;
+    if (!hasWaved && idleName && actions[idleName]) {
+      setHasWaved(true);
+      const idleAction = actions[idleName]!;
+      
+      currentActionRef.current?.stop();
+      currentActionRef.current = idleAction;
+      (idleAction.play as any)();
+      idleAction.setLoop(THREE.LoopRepeat, Infinity);
     }
-  }, [triggerFlinch, flinchName, actions]);
+  }, [hasWaved, idleName, actions]);
 
-  // Animation switching
-  useFrame(() => {
-    if (idleName && actions[idleName] && !actions[flinchName]?.isRunning()) {
-      actions[idleName]?.play();
+  // Handle click to trigger action animation
+  useEffect(() => {
+    if (triggerClick && actionName && actions[actionName] && idleName && actions[idleName]) {
+      const actionNameStr = actionName;
+      const actionAction = actions[actionNameStr]!;
+      const idleAction = actions[idleName]!;
+      
+      currentActionRef.current?.stop();
+      currentActionRef.current = actionAction;
+      (actionAction.play as any)();
+      actionAction.setLoop(THREE.LoopOnce, 1);
+      actionAction.clampWhenFinished = true;
+      
+      // Estimate action duration (typical action is ~1-2 seconds)
+      const actionTimer = setTimeout(() => {
+        currentActionRef.current?.stop();
+        currentActionRef.current = idleAction;
+        (idleAction.play as any)();
+        idleAction.setLoop(THREE.LoopRepeat, Infinity);
+      }, 2000);
+      
+      return () => clearTimeout(actionTimer);
     }
-  });
+  }, [triggerClick, actionName, idleName, actions]);
 
   return (
     <>
-      <group ref={group} onPointerOver={e => {
-        e.stopPropagation();
-        group.current.traverse((obj: any) => {
-          if (obj.material && obj.material.emissive) {
-            obj.material.emissive.set('#5CC8FF');
-          }
-        });
-      }}
-      onPointerOut={e => {
-        e.stopPropagation();
-        group.current.traverse((obj: any) => {
-          if (obj.material && obj.material.emissive) {
-            obj.material.emissive.set('#000');
-          }
-        });
-      }}
-      onClick={onClick}
-      >
+      <group ref={group} onClick={onClick}>
         <primitive object={scene} />
-        <ChillMotion groupRef={group} />
       </group>
       <ContactShadows
-        position={[0, -1.4, 0]}
+        position={[0, -0.02, 0]}
         opacity={0.4}
         scale={10}
         blur={2.5}
@@ -102,11 +110,11 @@ function AaronModel({ onClick, triggerFlinch }: { onClick: () => void; triggerFl
 }
 
 export default function CharacterPanel() {
-  const [triggerFlinch, setTriggerFlinch] = useState(false);
+  const [triggerClick, setTriggerClick] = useState(false);
   
   const handleClick = () => {
-    setTriggerFlinch(true);
-    setTimeout(() => setTriggerFlinch(false), 500);
+    setTriggerClick(true);
+    setTimeout(() => setTriggerClick(false), 500);
   };
 
   return (
@@ -118,21 +126,20 @@ export default function CharacterPanel() {
         gl={{
           antialias: true,
           alpha: true,
-          toneMappingExposure: 1,
+          toneMappingExposure: 0.6,
         }}
         onCreated={(state) => {
           state.gl.toneMapping = THREE.ACESFilmicToneMapping;
           state.gl.outputColorSpace = THREE.SRGBColorSpace;
-          console.log('Canvas initialized with cinematic rendering');
         }}
       >
         {/* Professional Lighting Setup */}
-        <ambientLight intensity={0.5} />
+        <ambientLight intensity={0.15} />
         
         {/* Key Light (Main) */}
         <directionalLight
           position={[3, 5, 4]}
-          intensity={1.6}
+          intensity={0.8}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
@@ -142,35 +149,33 @@ export default function CharacterPanel() {
         {/* Fill Light (Soft opposite side) */}
         <directionalLight
           position={[-3, 2, -2]}
-          intensity={0.6}
+          intensity={0.3}
         />
         
         {/* Rim Light (Backlight for outline) */}
         <directionalLight
           position={[0, 5, -6]}
-          intensity={1.2}
+          intensity={0.4}
         />
 
         {/* Environment Lighting */}
         <Environment preset="city" />
 
         <Suspense fallback={<Html center><div style={{color: 'white'}}>Loading 3D Character...</div></Html>}>
-          <AaronModel onClick={handleClick} triggerFlinch={triggerFlinch} />
+          <AaronModel onClick={handleClick} triggerClick={triggerClick} />
         </Suspense>
 
-        {/* Cinematic Camera Controls */}
+        {/* Cinematic Camera Controls - Fully Rotatable */}
         <OrbitControls
           enablePan={false}
           enableZoom={false}
-          minAzimuthAngle={-0.4}
-          maxAzimuthAngle={0.4}
+          target={[0, 1.25, 0]}
         />
       </Canvas>
-      <button className="pill-btn" onClick={handleClick}>Click Me</button>
     </div>
   );
 }
 
 // Drei GLTF loader
 // @ts-ignore
-useGLTF.preload('/models/aaron.glb');
+useGLTF.preload(MODEL_PATH);

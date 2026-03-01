@@ -17,10 +17,7 @@
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
   background: none;
 }
-.pill-btn {
-  position: absolute;
-  bottom: 18px;
-  right: 18px;
+.click-me-btn {
   background: #5CC8FF;
   color: #fff;
   border: none;
@@ -30,7 +27,9 @@
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(92,200,255,0.18);
   transition: background 0.2s;
+  pointer-events: auto;
 }
-.pill-btn:hover {
+.click-me-btn:hover {
   background: #3bb2e6;
 }
+
