@@ -1,164 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <!-- Project Coordinates -->
     <groupId>com.aaron.portfolio</groupId>
     <artifactId>aaron-portfolio-server</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
+
+    <!-- Parent -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.5</version>
         <relativePath/>
     </parent>
+
+    <!-- Properties -->
     <properties>
         <java.version>21</java.version>
         <spring-boot.version>3.2.5</spring-boot.version>
-        <frontend-maven-plugin.version>1.12.0</frontend-maven-plugin.version>
+        <frontend-maven-plugin.version>1.14.1</frontend-maven-plugin.version>
     </properties>
+
+    <!-- Dependencies -->
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
+
+    <!-- Build Configuration -->
     <build>
         <plugins>
+            <!-- Frontend Maven Plugin - Build React App -->
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>${frontend-maven-plugin.version}</version>
-                <configuration>
-                    <workingDirectory>../client</workingDirectory>
-                </configuration>
                 <executions>
-                    <!-- Install Node.js + npm locally -->
                     <execution>
-                        <id>install-node-and-npm</id>
+                        <id>install node and npm</id>
                         <goals>
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
-                            <nodeVersion>v20.11.1</nodeVersion>
-                            <npmVersion>10.5.0</npmVersion>
+                            <nodeVersion>v18.17.0</nodeVersion>
+                            <npmVersion>9.8.1</npmVersion>
                         </configuration>
                     </execution>
-                    <!-- Install frontend dependencies -->
                     <execution>
-                        <id>npm-install</id>
+                        <id>npm install</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>install --legacy-peer-deps</arguments>
+                            <workingDirectory>../client</workingDirectory>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm build</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <workingDirectory>../client</workingDirectory>
+                            <arguments>run build</arguments>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-            <!-- Start Vite dev server in background before Spring Boot -->
+
+            <!-- Copy Frontend Build to Static Resources -->
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
                 <version>3.1.0</version>
                 <executions>
                     <execution>
-                        <id>start-vite-dev-server</id>
-                        <phase>validate</phase>
+                        <id>copy frontend</id>
+                        <phase>prepare-package</phase>
                         <goals>
-                            <goal>exec</goal>
+                            <goal>run</goal>
                         </goals>
                         <configuration>
-                            <executable>bash</executable>
-                            <arguments>
-                                <argument>-c</argument>
-                                <argument>cd ../client &amp;&amp; npm run dev &amp;</argument>
-                            </arguments>
+                            <target>
+                                <copy todir="${project.build.outputDirectory}/static" failonerror="false">
+                                    <fileset dir="${project.basedir}/../client/dist"/>
+                                </copy>
+                            </target>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Maven Compiler with Lombok -->
             <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.30</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
         </plugins>
     </build>
-    <profiles>
-        <profile>
-            <id>prod</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>com.github.eirslett</groupId>
-                        <artifactId>frontend-maven-plugin</artifactId>
-                        <version>${frontend-maven-plugin.version}</version>
-                        <configuration>
-                            <workingDirectory>../client</workingDirectory>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>install-node-prod</id>
-                                <goals>
-                                    <goal>install-node-and-npm</goal>
-                                </goals>
-                                <configuration>
-                                    <nodeVersion>v20.11.1</nodeVersion>
-                                    <npmVersion>10.5.0</npmVersion>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>npm-ci</id>
-                                <goals>
-                                    <goal>npm</goal>
-                                </goals>
-                                <configuration>
-                                    <arguments>ci --legacy-peer-deps</arguments>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>npm-build</id>
-                                <goals>
-                                    <goal>npm</goal>
-                                </goals>
-                                <configuration>
-                                    <arguments>run build</arguments>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <version>3.3.1</version>
-                        <executions>
-                            <execution>
-                                <id>copy-dist-to-static</id>
-                                <phase>prepare-package</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/classes/static</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>../client/dist</directory>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-maven-plugin</artifactId>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

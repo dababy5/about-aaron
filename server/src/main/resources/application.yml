@@ -2,10 +2,19 @@ spring:
   application:
     name: aaron-portfolio
   web:
-    cors:
-      allowed-origins: http://localhost:5173
-      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
-      allow-credentials: true
+    resources:
+      static-locations: classpath:/static/
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: pintotamayoaaron@gmail.com
+    password: "hkcw qogc rmlv pkdl"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   port: 8080
@@ -13,3 +22,5 @@ server:
 # OpenAI Configuration (placeholder)
 openai:
   apiKey: ${OPENAI_API_KEY:}
+app: 
+  gmail: "pintotamayoaaron@gmail.com"
