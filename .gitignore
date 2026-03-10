@@ -1,21 +1,51 @@
-# See README for usage instructions
+# Dependencies
 node_modules/
+node/
+
+# Build outputs
 dist/
 build/
+target/
+
+# Environment files
 .env
-.DS_Store
+.env.local
+.env.*.local
+
 # Java
 *.class
 *.jar
 *.war
+*.ear
+
+# Logs
 *.log
-# Maven
-/target/
+logs/
+
+# Sensitive config files
+**/application.yml
+**/application-*.yml
+**/secrets.yml
+
 # IDE
 .idea/
 .vscode/
 *.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
 # OS
+.DS_Store
 Thumbs.db
-# Models
-client/public/models/*.glb
+*.swp
+*~
+
+# 3D Models (large binary files)
+**/*.glb
+**/*.gltf
+
+# Keep pom.xml
+!pom.xml

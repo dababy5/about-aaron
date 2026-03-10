@@ -1,9 +1,9 @@
 .character-panel {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  min-width: 320px;
-  min-height: 420px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -12,10 +12,11 @@
 }
 .character-panel canvas {
   width: 100%;
-  height: 420px;
-  border-radius: 18px;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
   background: none;
+  pointer-events: auto;
 }
 .click-me-btn {
   background: #5CC8FF;

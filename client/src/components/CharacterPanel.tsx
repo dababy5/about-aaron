@@ -3,31 +3,28 @@ import { Canvas } from '@react-three/fiber';
 import { Suspense, useRef, useState, useEffect } from 'react';
 import { OrbitControls, useGLTF, useAnimations, Html, Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
+import { Platform, BackgroundGradient } from './SceneEnvironment';
 
-const MODEL_PATH = '/models/Meshy_AI_Meshy_Merged_Animations.glb';
+const MODEL_PATH = '/models/aaronjpi.glb';
 
-function AaronModel({ onClick, triggerClick }: { onClick: () => void; triggerClick: boolean }) {
+function AaronModel() {
   const group = useRef<any>(null);
   const { scene, animations } = useGLTF(MODEL_PATH);
   const { actions, names } = useAnimations(animations, group);
   const [hasWaved, setHasWaved] = useState(false);
   const currentActionRef = useRef<any>(null);
 
-  // Log available animations
-  useEffect(() => {
-    console.log('Available animations:', names);
-  }, [names]);
-
-  // Animation name helpers
-  const getAnimationName = (keyword: string) => {
-    return names.find(n => n.toLowerCase().includes(keyword.toLowerCase())) || null;
-  };
-
-  const idleName = getAnimationName('Dead');
-  const actionName = getAnimationName('flinch') || getAnimationName('salute') || getAnimationName('punch');
+  const idleName = names.find(n => n === 'Angry_Ground_Stomp') || null;
+  const waveName = names.find(n => n === 'Big_Wave_Hello') || null;
 
   // Material Enhancement
   useEffect(() => {
+    // Reset scene from any other page's modifications
+    scene.position.set(0, 0, 0);
+    scene.scale.set(1, 1, 1);
+    scene.rotation.set(0, 0, 0);
+    scene.visible = true;
+
     const box = new THREE.Box3().setFromObject(scene);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
@@ -36,7 +33,7 @@ function AaronModel({ onClick, triggerClick }: { onClick: () => void; triggerCli
     const scale = THREE.MathUtils.clamp(rawScale, 0.35, 1.25);
 
     scene.position.x = -center.x * scale;
-    scene.position.y = -box.min.y * scale + (size.y * scale) * (0.3 / targetHeight);
+    scene.position.y = -box.min.y * scale - 0.45;
     scene.position.z = -center.z * scale;
     scene.scale.setScalar(scale);
 
@@ -55,72 +52,64 @@ function AaronModel({ onClick, triggerClick }: { onClick: () => void; triggerCli
     });
   }, [scene, names]);
 
-  // Start with Dead animation looping
+  // Play wave greeting then settle into idle
   useEffect(() => {
-    if (!hasWaved && idleName && actions[idleName]) {
-      setHasWaved(true);
-      const idleAction = actions[idleName]!;
-      
-      currentActionRef.current?.stop();
-      currentActionRef.current = idleAction;
-      (idleAction.play as any)();
-      idleAction.setLoop(THREE.LoopRepeat, Infinity);
-    }
-  }, [hasWaved, idleName, actions]);
+    if (hasWaved) return;
+    if (!actions) return;
 
-  // Handle click to trigger action animation
-  useEffect(() => {
-    if (triggerClick && actionName && actions[actionName] && idleName && actions[idleName]) {
-      const actionNameStr = actionName;
-      const actionAction = actions[actionNameStr]!;
-      const idleAction = actions[idleName]!;
-      
+    const idleAction = idleName ? actions[idleName] : null;
+    const waveAction = waveName ? actions[waveName] : null;
+
+    if (waveAction && idleAction) {
+      setHasWaved(true);
       currentActionRef.current?.stop();
-      currentActionRef.current = actionAction;
-      (actionAction.play as any)();
-      actionAction.setLoop(THREE.LoopOnce, 1);
-      actionAction.clampWhenFinished = true;
-      
-      // Estimate action duration (typical action is ~1-2 seconds)
-      const actionTimer = setTimeout(() => {
-        currentActionRef.current?.stop();
-        currentActionRef.current = idleAction;
-        (idleAction.play as any)();
+
+      // Play wave once, then crossfade to idle
+      waveAction.reset();
+      waveAction.setLoop(THREE.LoopOnce, 1);
+      waveAction.clampWhenFinished = true;
+      waveAction.play();
+      currentActionRef.current = waveAction;
+
+      const mixer = waveAction.getMixer();
+      const onFinished = () => {
+        mixer.removeEventListener('finished', onFinished);
+        waveAction.fadeOut(0.4);
+        idleAction.reset().fadeIn(0.4).play();
         idleAction.setLoop(THREE.LoopRepeat, Infinity);
-      }, 2000);
-      
-      return () => clearTimeout(actionTimer);
+        currentActionRef.current = idleAction;
+      };
+      mixer.addEventListener('finished', onFinished);
+    } else if (idleAction) {
+      setHasWaved(true);
+      currentActionRef.current?.stop();
+      idleAction.reset().play();
+      idleAction.setLoop(THREE.LoopRepeat, Infinity);
+      currentActionRef.current = idleAction;
     }
-  }, [triggerClick, actionName, idleName, actions]);
+  }, [hasWaved, idleName, waveName, actions]);
 
   return (
     <>
-      <group ref={group} onClick={onClick}>
+      <group ref={group}>
         <primitive object={scene} />
       </group>
       <ContactShadows
-        position={[0, -0.02, 0]}
-        opacity={0.4}
-        scale={10}
-        blur={2.5}
-        far={4}
+        position={[0, -0.47, 0]}
+        opacity={0.25}
+        scale={8}
+        blur={2}
+        far={3}
       />
     </>
   );
 }
 
 export default function CharacterPanel() {
-  const [triggerClick, setTriggerClick] = useState(false);
-  
-  const handleClick = () => {
-    setTriggerClick(true);
-    setTimeout(() => setTriggerClick(false), 500);
-  };
-
   return (
     <div className="character-panel">
       <Canvas
-        camera={{ position: [0, 1.4, 3.5], fov: 35 }}
+        camera={{ position: [0, 1.2, 3.5], fov: 40 }}
         shadows
         dpr={[1, 2]}
         gl={{
@@ -161,15 +150,24 @@ export default function CharacterPanel() {
         {/* Environment Lighting */}
         <Environment preset="city" />
 
+        {/* Background and Platform Elements */}
+        <BackgroundGradient />
+        <Platform />
+
         <Suspense fallback={<Html center><div style={{color: 'white'}}>Loading 3D Character...</div></Html>}>
-          <AaronModel onClick={handleClick} triggerClick={triggerClick} />
+          <AaronModel />
         </Suspense>
 
         {/* Cinematic Camera Controls - Fully Rotatable */}
         <OrbitControls
           enablePan={false}
           enableZoom={false}
-          target={[0, 1.25, 0]}
+          enableRotate={true}
+          autoRotate={false}
+          target={[0, 0.6, 0]}
+          minPolarAngle={0}
+          maxPolarAngle={Math.PI}
+          rotateSpeed={1}
         />
       </Canvas>
     </div>
