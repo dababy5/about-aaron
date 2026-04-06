@@ -32,6 +32,12 @@ export default function ContactPage() {
         body: JSON.stringify(formData)
       });
 
+      if (res.status === 429) {
+        setStatus('error');
+        setLoading(false);
+        return;
+      }
+
       if (res.ok) {
         setStatus('success');
         setFormData({ name: '', email: '', subject: '', message: '' });
@@ -66,6 +72,7 @@ export default function ContactPage() {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="Your name"
+                maxLength={100}
                 required
               />
             </div>
@@ -82,6 +89,7 @@ export default function ContactPage() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="your.email@example.com"
+                maxLength={254}
                 required
               />
             </div>
@@ -98,6 +106,7 @@ export default function ContactPage() {
                 value={formData.subject}
                 onChange={handleChange}
                 placeholder="What's this about?"
+                maxLength={200}
                 required
               />
             </div>
@@ -114,6 +123,7 @@ export default function ContactPage() {
                 onChange={handleChange}
                 placeholder="Your message..."
                 rows={5}
+                maxLength={5000}
                 required
               />
             </div>

@@ -42,8 +42,15 @@ export default function ChatPanel() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  const MAX_WORDS = 500;
+
+  function wordCount(text: string) {
+    return text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+  }
+
   async function sendMessage() {
     if (!input.trim() || loading) return;
+    if (wordCount(input) > MAX_WORDS) return;
     const userText = input;
     setInput('');
     setMessages(msgs => [...msgs, { sender: 'user', text: userText }]);
@@ -55,9 +62,22 @@ export default function ChatPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userText }),
       });
+
+      if (res.status === 429) {
+        setMessages(msgs => [...msgs, { sender: 'assistant', text: 'Too many requests. Please wait a bit before trying again.' }]);
+        setLoading(false);
+        inputRef.current?.focus();
+        return;
+      }
+
       const data = await res.json();
-      setMessages(msgs => [...msgs, { sender: 'assistant', text: data.reply, typing: true }]);
-      setIsTyping(true);
+
+      if (data.error) {
+        setMessages(msgs => [...msgs, { sender: 'assistant', text: data.error }]);
+      } else {
+        setMessages(msgs => [...msgs, { sender: 'assistant', text: data.reply, typing: true }]);
+        setIsTyping(true);
+      }
     } catch {
       setMessages(msgs => [...msgs, { sender: 'assistant', text: 'Could not reach the server. Try again in a sec.' }]);
     }
@@ -124,11 +144,14 @@ export default function ChatPanel() {
         <button
           className="send-btn"
           onClick={sendMessage}
-          disabled={loading || isTyping || !input.trim()}
+          disabled={loading || isTyping || !input.trim() || wordCount(input) > MAX_WORDS}
         >
           <Send size={14} strokeWidth={2} />
         </button>
       </div>
+      {wordCount(input) > MAX_WORDS && (
+        <div className="chat-word-limit">{wordCount(input)}/{MAX_WORDS} words — too long</div>
+      )}
     </div>
   );
 }

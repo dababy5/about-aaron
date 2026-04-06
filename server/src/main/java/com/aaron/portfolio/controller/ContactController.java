@@ -10,14 +10,16 @@ import org.springframework.web.bind.annotation.RestController;
 import com.aaron.portfolio.dto.ContactRequest;
 import com.aaron.portfolio.service.EmailService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/contact")
 public class ContactController {
     @Autowired
-    EmailService emailService; 
+    EmailService emailService;
+
     @PostMapping
-    public ResponseEntity<?> sendContactMessage(@RequestBody ContactRequest form) {
-        // Implement the logic to handle the contact form submission
+    public ResponseEntity<?> sendContactMessage(@Valid @RequestBody ContactRequest form) {
         return emailService.sendEmail(form);
     }
 }

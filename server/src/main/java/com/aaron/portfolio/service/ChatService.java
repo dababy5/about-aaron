@@ -10,7 +10,7 @@ import org.springframework.web.client.RestClient;
 @Service
 public class ChatService {
 
-    @Value("${modal.endpoint:https://pintotamayoaaron--aaron-ai-model-web.modal.run/ask}")
+    @Value("${modal.endpoint}")
     private String modalEndpoint;
 
     private final RestClient restClient;
